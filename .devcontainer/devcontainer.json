@@ -1,0 +1,14 @@
+{
+  "dockerFile": "Dockerfile",
+  "extensions": [
+    "ms-python.python"
+  ],
+  "settings": {
+    "editor.formatOnSave": true,
+    "files.autoSave": "onFocusChange",
+    "python.formatting.blackPath": "${workspaceFolder}/.tox/black/bin/black",
+    "python.formatting.provider": "black",
+    "python.pythonPath": "${workspaceFolder}/.tox/py38/bin/python3.8",
+    "python.venvPath": "${workspaceFolder}/.tox"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "python.formatting.provider": "black",
+  "python.venvPath": "${workspaceFolder}/.tox",
+  "python.pythonPath": ".tox/py38/bin/python3.8",
+  "python.formatting.blackPath": "${workspaceFolder}/.tox/black/bin/black",
+  "editor.formatOnSave": true,
+  "files.autoSave": "onFocusChange"
+}
