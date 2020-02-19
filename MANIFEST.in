@@ -10,3 +10,5 @@ include mopidy_*/ext.conf
 
 exclude .vscode
 recursive-exclude .vscode *
+exclude .devcontainer
+recursive-exclude .devcontainer *

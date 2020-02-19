@@ -1,10 +1,7 @@
 from mopidy.backend import PlaybackProvider
-from mopidy.internal import path
+from mopidy_azure.library import blob_for_uri
 
 
 class AzurePlaybackProvider(PlaybackProvider):
     def translate_uri(self, uri):
-        sas = self.backend.get_playback_sas()
-        subpath = path.uri_to_path(uri).as_posix()
-        uri = self.backend.account_url + "/" + self.backend.container + subpath + sas
-        return uri
+        return self.backend.get_public_uri_for(uri)

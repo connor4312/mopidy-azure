@@ -10,7 +10,7 @@ from azure.storage.blob import (
     BlobSasPermissions,
 )
 
-from mopidy_azure.library import AzureLibraryProvider
+from mopidy_azure.library import AzureLibraryProvider, blob_for_uri
 from mopidy_azure.playback import AzurePlaybackProvider
 
 logger = logging.getLogger(__name__)
@@ -24,16 +24,20 @@ class SharedAccessKey:
 
 
 class AzureBackend(pykka.ThreadingActor, backend.Backend):
-    @property()
-    def account_name(self):
-        return self._config.get("azure", "account_name")
+    @property
+    def account_name(self) -> str:
+        return str(self._config["azure"]["account_name"])
 
-    @property()
-    def container(self):
-        return self._config.get("azure", "container")
+    @property
+    def songs_container(self) -> str:
+        return str(self._config["azure"]["songs_container"])
 
-    @property()
-    def account_url(self):
+    @property
+    def cache_container(self) -> str:
+        return str(self._config["azure"]["cache_container"])
+
+    @property
+    def account_url(self) -> str:
         return "https://{}.blob.core.windows.net".format(self.account_name)
 
     def __init__(self, config, audio):
@@ -41,21 +45,29 @@ class AzureBackend(pykka.ThreadingActor, backend.Backend):
         self._config = config
         self._sas = SharedAccessKey(datetime.utcnow(), "")
 
-        self.container = config.get("azure", "container")
         self.account_client = BlobServiceClient(
-            account_url=self.account_url, credential=config.get("azure", "account_key"),
+            account_url=self.account_url,
+            credential=str(config["azure"]["account_key"]),
         )
-        self.container_client = self.account_client.get_container_client(self.container)
+        logger.info(
+            "url={}, cred={}".format(
+                self.account_url, str(config["azure"]["account_key"])
+            )
+        )
+        logger.info(
+            "containers: {}".format(list(self.account_client.list_containers()))
+        )
+        self.songs_container_client = self.account_client.get_container_client(
+            self.songs_container
+        )
+        self.cache_container_client = self.account_client.get_container_client(
+            self.cache_container
+        )
 
-        self.library = AzureLibraryProvider(backend=self)
+        self.library = AzureLibraryProvider(backend=self, config=config)
         self.playback = AzurePlaybackProvider(audio=audio, backend=self)
 
-        self.uri_schemes = ["soundcloud", "sc"]
-
-    def on_start(self):
-        username = self.remote.user.get("username")
-        if username is not None:
-            logger.info(f"Logged in to SoundCloud as {username!r}")
+        self.uri_schemes = ["az"]
 
     def get_playback_sas(self) -> SharedAccessKey:
         """Gets (renewing if necessary) a shared access key for playing back tracks."""
@@ -65,12 +77,27 @@ class AzureBackend(pykka.ThreadingActor, backend.Backend):
 
         expires_at = datetime.utcnow() + playback_sas_ttl
         value = generate_container_sas(
-            account_name=self._config.get("azure", "account_name"),
-            account_key=self._config.get("azure", "account_key"),
-            container_name=self.container,
+            account_name=self.account_name,
+            account_key=self._config["azure"]["account_key"],
+            container_name=self.songs_container,
             permission=BlobSasPermissions(read=True),
             expiry=expires_at,
         )
 
         self._sas = SharedAccessKey(expires_at, value)
         return self._sas
+
+    def get_public_uri_for(self, song_uri: str) -> str:
+        """Gets the publicly accessible URI for the song--the blob URI with an
+        appropriate shared access key appended"""
+        sas = self.get_playback_sas()
+        subpath = blob_for_uri(song_uri)
+        return (
+            self.account_url
+            + "/"
+            + self.songs_container
+            + "/"
+            + subpath
+            + "?"
+            + sas.value
+        )

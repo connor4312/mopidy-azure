@@ -21,7 +21,8 @@ class Extension(ext.Extension):
         schema = super().get_config_schema()
         schema["account_name"] = config.String()
         schema["account_key"] = config.Secret()
-        schema["container"] = config.String()
+        schema["songs_container"] = config.String()
+        schema["cache_container"] = config.String()
         return schema
 
     def validate_config(self, config):  # no_coverage

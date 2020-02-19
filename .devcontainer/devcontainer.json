@@ -1,8 +1,8 @@
 {
   "dockerFile": "Dockerfile",
-  "extensions": [
-    "ms-python.python"
-  ],
+  "workspaceFolder": "/workspace",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
+  "extensions": ["ms-python.python"],
   "settings": {
     "editor.formatOnSave": true,
     "files.autoSave": "onFocusChange",
