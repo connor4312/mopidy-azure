@@ -5,5 +5,6 @@
   "python.formatting.blackPath": "${workspaceFolder}/.tox/black/bin/black",
   "editor.formatOnSave": true,
   "files.autoSave": "onFocusChange",
-  "editor.minimap.enabled": false
+  "editor.minimap.enabled": false,
+  "editor.minimap.renderCharacters": true
 }
