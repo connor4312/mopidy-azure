@@ -4,5 +4,6 @@
   "python.pythonPath": ".tox/py38/bin/python3.8",
   "python.formatting.blackPath": "${workspaceFolder}/.tox/black/bin/black",
   "editor.formatOnSave": true,
-  "files.autoSave": "onFocusChange"
+  "files.autoSave": "onFocusChange",
+  "editor.minimap.enabled": false
 }
