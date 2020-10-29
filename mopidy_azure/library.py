@@ -1,5 +1,6 @@
 import logging
 import json
+from urllib.parse import quote, unquote
 from typing import Optional
 
 from azure.storage.blob import ContainerClient, BlobClient
@@ -13,11 +14,11 @@ uri_prefix = "az:///"
 
 
 def uri_for_blob(blob_name: str):
-    return uri_prefix + blob_name
+    return uri_prefix + "/".join(quote(x) for x in blob_name.split("/"))
 
 
 def blob_for_uri(uri: str):
-    return uri[len(uri_prefix) :]
+    return unquote(uri[len(uri_prefix) :])
 
 
 def _tree_to_ref(item):
