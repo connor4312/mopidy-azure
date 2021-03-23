@@ -10,6 +10,7 @@ from azure.storage.blob import (
     BlobSasPermissions,
 )
 
+
 from mopidy_azure.library import AzureLibraryProvider, blob_for_uri
 from mopidy_azure.playback import AzurePlaybackProvider
 
