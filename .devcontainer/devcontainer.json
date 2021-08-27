@@ -3,6 +3,7 @@
   "workspaceFolder": "/workspace",
   "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
   "extensions": ["ms-python.python"],
+  "forwardPorts": [0],
   "settings": {
     "editor.formatOnSave": true,
     "files.autoSave": "onFocusChange",
