@@ -3,8 +3,7 @@ import json
 from urllib.parse import quote, unquote
 from typing import Optional
 
-from azure.storage.blob import ContainerClient, BlobClient
-from azure.storage.blob._models import BlobPrefix
+from azure.storage.blob import ContainerClient, BlobClient, BlobPrefix
 from azure.core.exceptions import ResourceNotFoundError
 from mopidy import backend, models, exceptions
 from mopidy.audio import scan, tags
@@ -25,7 +24,35 @@ def _tree_to_ref(item):
     if isinstance(item, BlobPrefix):
         return models.Ref.directory(name=item.name[:-1], uri=uri_for_blob(item.name))
     else:
-        return models.Ref.track(name=item.name, uri=uri_for_blob(item.name))
+        # Check if this is likely an audio file
+        if _is_audio_file(item.name):
+            return models.Ref.track(name=item.name, uri=uri_for_blob(item.name))
+        else:
+            # Treat non-audio files as generic tracks - let the scanner decide
+            return models.Ref.track(name=item.name, uri=uri_for_blob(item.name))
+
+
+def _is_audio_file(filename):
+    """Check if a filename appears to be an audio file based on extension."""
+    if not filename:
+        return False
+
+    audio_extensions = {
+        ".mp3",
+        ".flac",
+        ".ogg",
+        ".m4a",
+        ".wav",
+        ".aac",
+        ".wma",
+        ".opus",
+        ".mp4",
+        ".mpeg",
+        ".mpga",
+    }
+
+    filename_lower = filename.lower()
+    return any(filename_lower.endswith(ext) for ext in audio_extensions)
 
 
 class AzureLibraryProvider(backend.LibraryProvider):
@@ -62,12 +89,24 @@ class AzureLibraryProvider(backend.LibraryProvider):
         song_blob = self._songs.get_blob_client(blob_for_uri(uri))
         song_etag = song_blob.get_blob_properties().etag
 
+        # Extract filename from URI for format checking
+        blob_name = blob_for_uri(uri)
+        filename = blob_name.split("/")[-1] if "/" in blob_name else blob_name
+
         public_uri = self.backend.get_public_uri_for(uri)
         try:
             cached_data = self._get_cached_metadata(etag=song_etag, song_uri=uri)
             if cached_data is not None:
                 (song_tags, duration) = cached_data
             else:
+                # Check if this looks like an audio file before scanning
+                if not _is_audio_file(filename):
+                    logger.info(
+                        "File %s does not appear to be an audio file, "
+                        "but attempting to scan anyway",
+                        filename,
+                    )
+
                 result = self._scanner.scan(public_uri)
                 song_tags = result.tags
                 duration = result.duration
@@ -107,7 +146,9 @@ class AzureLibraryProvider(backend.LibraryProvider):
             logger.debug("No existing cached metadata for %s", song_uri)
         except Exception as e:
             logger.warning(
-                "Unexpected error looking up metadata for %s: %s", song_uri, e,
+                "Unexpected error looking up metadata for %s: %s",
+                song_uri,
+                e,
             )
 
         return None
@@ -126,4 +167,3 @@ class AzureLibraryProvider(backend.LibraryProvider):
             )
         except Exception as e:
             logger.warning("Error updating stored metadata for %s: %s", song_uri, e)
-
