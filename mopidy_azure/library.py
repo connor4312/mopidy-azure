@@ -89,12 +89,24 @@ class AzureLibraryProvider(backend.LibraryProvider):
         song_blob = self._songs.get_blob_client(blob_for_uri(uri))
         song_etag = song_blob.get_blob_properties().etag
 
+        # Extract filename from URI for format checking
+        blob_name = blob_for_uri(uri)
+        filename = blob_name.split("/")[-1] if "/" in blob_name else blob_name
+
         public_uri = self.backend.get_public_uri_for(uri)
         try:
             cached_data = self._get_cached_metadata(etag=song_etag, song_uri=uri)
             if cached_data is not None:
                 (song_tags, duration) = cached_data
             else:
+                # Check if this looks like an audio file before scanning
+                if not _is_audio_file(filename):
+                    logger.info(
+                        "File %s does not appear to be an audio file, "
+                        "but attempting to scan anyway",
+                        filename,
+                    )
+
                 result = self._scanner.scan(public_uri)
                 song_tags = result.tags
                 duration = result.duration

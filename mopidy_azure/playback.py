@@ -11,7 +11,17 @@ class AzurePlaybackProvider(PlaybackProvider):
 
     def translate_uri(self, uri):
         """Convert Azure URI to publicly accessible blob URL."""
-        return self.backend.get_public_uri_for(uri)
+        if not uri or not uri.startswith("az:///"):
+            logger.warning("Invalid Azure URI format: %s", uri)
+            return None
+
+        try:
+            public_uri = self.backend.get_public_uri_for(uri)
+            logger.debug("Translated %s to %s", uri, public_uri)
+            return public_uri
+        except Exception as e:
+            logger.error("Failed to translate URI %s: %s", uri, e)
+            return None
 
     def should_download(self, uri):
         """Enable progressive download for supported audio formats.
